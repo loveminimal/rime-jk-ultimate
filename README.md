@@ -2,8 +2,9 @@ RIME_JK ，指尖上的旋律 ～ [🍕 指南](https://aituyaa.com/rime_jk-%E6%
 
 <img src='./assets/color.png' width='76%' /><img src='./assets/click.gif' width='16%' />
 
+🪧 该仓库是由 [loveminimal/rime-jk](https://github.com/loveminimal/rime-jk) 的一个历史提交独立出来的（源仓库只保留该版本的部分方案），单独维护（修复 bug、优化方案）。
 
-🔥v6.6.6.ultimate「 唯一推荐，超越任何一个历史版本 」 最新终极大一统版本包含内容 ：
+🔥「 唯一推荐 」 大一统版本包含内容 ：
 
 ```
 - 方案：

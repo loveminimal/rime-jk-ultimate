@@ -140,6 +140,7 @@ zh2en:
 
 chaifen:
   __include: jk.yaml:/chaifen
+  opencc_config: wb_cf.json
 
 traditionalize:
   __include: jk.yaml:/traditionalize

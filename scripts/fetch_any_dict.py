@@ -218,7 +218,7 @@ def convert(src_dir: Path, out_dir: Path, file_endswith_filter: str) -> None:
     list_without_tone = list('aaaaooooeeeeiiiiuuuuvvvvvnnn')
 
     res_dict_word_weight = {}
-    valid_entries = set()
+    # valid_entries = set()
     _valid_entries = set()
 
     for file_num, file_path in enumerate(src_dir.glob(f'*{file_endswith_filter}'), 1):
@@ -256,6 +256,7 @@ def convert(src_dir: Path, out_dir: Path, file_endswith_filter: str) -> None:
 
 
         with open(file_path, 'r', encoding='utf-8') as f:
+            valid_entries = set()
             for line in f:
                 line = line.strip()
                 if not line or not is_chinese_char(line[0]):
@@ -285,28 +286,33 @@ def convert(src_dir: Path, out_dir: Path, file_endswith_filter: str) -> None:
                         valid_entries.add(f"{word}\t{pinyin_code}\t{res_dict_word_weight[word + get_md5(line)]}\n")
                     elif code_type.startswith("2"):
                         wubi_code = get_wubi_code(word)
-                        # valid_entries.add(f"{word}\t{wubi_code}\t{res_dict_word_weight[word]}\n")
-                        _valid_entries.add(f"{word}\t{wubi_code}")
+                        valid_entries.add(f"{word}\t{wubi_code}\t{res_dict_word_weight[word]}\n")
+                        # _valid_entries.add(f"{word}\t{wubi_code}")
                     elif code_type.startswith("3"):
                         tiger_code = get_tiger_code(word)
-                        # valid_entries.add(f"{word}\t{tiger_code}\t{res_dict_word_weight[word]}\n")
-                        _valid_entries.add(f"{word}\t{tiger_code}")
+                        valid_entries.add(f"{word}\t{tiger_code}\t{res_dict_word_weight[word]}\n")
+                        # _valid_entries.add(f"{word}\t{tiger_code}")
                 except KeyError:
                     invalid_line_count += 1
 
-    # 非拼音时去重多音字造成的重复词条
-    if not code_type.startswith("1"):
-        for wc in _valid_entries:
-            # if wc == '从\tww;yz':
-            #     print(wc)
-            #     print(res_dict_word_weight[tab_split_re.split(wc)[0]])
-            valid_entries.add(f"{wc}\t{res_dict_word_weight[tab_split_re.split(wc)[0]]}\n")
+            output_path = out_dir / f"{file_path.stem}.yaml"
+            with open(output_path, 'w', encoding='utf-8') as o:
+                o.writelines(get_header_common(f"{file_path.stem}.yaml"))
+                o.writelines(sorted(valid_entries))
 
-    if valid_entries:
-        output_path = out_dir / f"{file_path.stem}.yaml"
-        with open(output_path, 'w', encoding='utf-8') as o:
-            o.writelines(get_header_common(f"{file_path.stem}.yaml"))
-            o.writelines(sorted(valid_entries))
+    # # 非拼音时去重多音字造成的重复词条
+    # if not code_type.startswith("1"):
+    #     for wc in _valid_entries:
+    #         # if wc == '从\tww;yz':
+    #         #     print(wc)
+    #         #     print(res_dict_word_weight[tab_split_re.split(wc)[0]])
+    #         valid_entries.add(f"{wc}\t{res_dict_word_weight[tab_split_re.split(wc)[0]]}\n")
+
+    # if valid_entries:
+    #     output_path = out_dir / f"{file_path.stem}.yaml"
+    #     with open(output_path, 'w', encoding='utf-8') as o:
+    #         o.writelines(get_header_common(f"{file_path.stem}.yaml"))
+    #         o.writelines(sorted(valid_entries))
 
         # print(f"  成功转换 {len(valid_entries)} 条记录，跳过 {invalid_line_count} 条无效记录")
 
@@ -384,6 +390,7 @@ def sort_dict(src_dir, out_dir, dict_start):
     """分组排序处理用户词典"""
     res_dict = {}
     lines_total = []
+    res_dict_word_weight = {}
 
     # 加载所有词典文件
     for file_path in src_dir.iterdir():
@@ -405,16 +412,25 @@ def sort_dict(src_dir, out_dir, dict_start):
     for line in set(lines_total):
         if is_chinese_char(line[0]):
             word, code, weight = line.strip().split('\t')
-            weight = int(weight)
+            # weight = int(weight)
+
+            # 将权重转换为整数以便比较
+            current_weight = int(weight)
+            # 如果字不存在于字典中，或者当前权重更大，则更新字典
+            # 拼音时由于存在多音字，不再根据 word 去重
+            if code_type.startswith("1"):
+                res_dict_word_weight[word + get_md5(line)] = current_weight
+            else:
+                if word not in res_dict_word_weight or current_weight > res_dict_word_weight[word]:
+                    res_dict_word_weight[word] = current_weight
             
             # 唯一化
             # 拼音时由于存在多音字，不再根据 word 去重
             if code_type.startswith("1"):
-                res_dict[word + get_md5(line)] = f'{code}\t{weight}'
-                continue
-
-            if word not in res_dict:
-                res_dict[word + get_md5(line)] = f'{code}\t{weight}'
+                res_dict[word + get_md5(line)] = f'{code}\t{res_dict_word_weight[word + get_md5(line)]}'
+            else:
+                if word not in res_dict:
+                    res_dict[word + get_md5(word + code)] = f'{code}\t{res_dict_word_weight[word]}'
 
 
     # 多级分组排序（词长→编码长度→编码→汉字）
@@ -724,7 +740,7 @@ if __name__ == "__main__":
 如：16 ➭ 拼音+虎码首末；20 ➭ 五笔常规；31 ➭ 虎码整句
 ------------------------------------------------------------------------------
         ''')
-        code_type = input(f"🔔  默认「 虎码首末 ¦ 辅助码 」? (16): ").strip().lower() or "16"
+        code_type = input(f"🔔  默认「 鹤形 ¦ 辅助码 」? (12): ").strip().lower() or "12"
         # print(f'🔜  {code_type}   ➭ {code_dict[code_type]}\n')
     print(f'🔜  {code_type} {code_dict[code_type]} \n')
 

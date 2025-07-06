@@ -73,5 +73,6 @@ traditionalize:
   __include: jk_pinyin.schema.yaml:/traditionalize
 
 #语法模型
+__include: octagram	#启用语言模型
 octagram:
   __include: jk_pinyin.schema.yaml:/octagram
